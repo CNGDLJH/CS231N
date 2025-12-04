@@ -57,23 +57,40 @@ def deprocess_image(img, rescale=False):
     return np.clip(255 * img, 0.0, 255.0).astype(np.uint8)
 
 
+# def image_from_url(url):
+#     """
+#     Read an image from a URL. Returns a numpy array with the pixel data.
+#     We write the image to a temporary file then read it back. Kinda gross.
+#     """
+#     try:
+#         f = urllib.request.urlopen(url)
+#         _, fname = tempfile.mkstemp()
+#         with open(fname, "wb") as ff:
+#             ff.write(f.read())
+#         img = imread(fname)
+#         os.remove(fname)
+#         return img
+#     except urllib.error.URLError as e:
+#         print("URL Error: ", e.reason, url)
+#     except urllib.error.HTTPError as e:
+#         print("HTTP Error: ", e.code, url)
+
+import requests
+from io import BytesIO
+from PIL import Image
+import matplotlib.pyplot as plt
+
+# 重写图片加载函数：直接在内存中处理，不生成临时文件
 def image_from_url(url):
-    """
-    Read an image from a URL. Returns a numpy array with the pixel data.
-    We write the image to a temporary file then read it back. Kinda gross.
-    """
     try:
-        f = urllib.request.urlopen(url)
-        _, fname = tempfile.mkstemp()
-        with open(fname, "wb") as ff:
-            ff.write(f.read())
-        img = imread(fname)
-        os.remove(fname)
+        # 发送请求获取图片数据
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()  # 检查请求是否成功
+        # 直接从内存读取图片
+        img = Image.open(BytesIO(response.content))
         return img
-    except urllib.error.URLError as e:
-        print("URL Error: ", e.reason, url)
-    except urllib.error.HTTPError as e:
-        print("HTTP Error: ", e.code, url)
+    except Exception as e:
+        raise Exception(f"图片加载失败：{str(e)}")
 
 
 def load_image(filename, size=None):

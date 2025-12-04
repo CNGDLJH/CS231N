@@ -1,7 +1,7 @@
 """This file defines layer types that are commonly used for recurrent neural networks.
 """
 import torch
-
+import numpy as np
 
 def affine_forward(x, w, b):
     """Computes the forward pass for an affine (fully connected) layer.
@@ -44,6 +44,12 @@ def rnn_step_forward(x, prev_h, Wx, Wh, b):
     # TODO: Implement a single forward step for the vanilla RNN.                 #
     ##############################################################################
     # 
+    
+    input_term = x @ Wx
+    hidden_term = prev_h @ Wh
+    linear = input_term + hidden_term + b
+    next_h = torch.tanh(linear)
+    
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -74,6 +80,20 @@ def rnn_forward(x, h0, Wx, Wh, b):
     # above. You can use a for loop to help compute the forward pass.            #
     ##############################################################################
     # 
+    
+    N, T, D = x.shape
+    H = h0.shape[1]
+    
+    h_list = []
+    prev_h = h0
+    
+    for t in range(T):
+        xt = x[:, t, :]
+        next_h = rnn_step_forward(xt, prev_h, Wx, Wh, b)
+        h_list.append(next_h)  # Add time dimension
+        prev_h = next_h
+    
+    h = torch.stack(h_list, dim=1)  # Concatenate along time dimension
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -102,6 +122,7 @@ def word_embedding_forward(x, W):
     # HINT: This can be done in one line using Pytorch's array indexing.         #
     ##############################################################################
     # 
+    out = W[x]
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -134,6 +155,19 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     # You may want to use the numerically stable sigmoid implementation above.  #
     #############################################################################
     # 
+    
+    linear = x @ Wx + prev_h @ Wh + b
+    
+    H = prev_h.shape[1]
+    i = torch.sigmoid(linear[:, 0:H])          # input gate
+    f = torch.sigmoid(linear[:, H:2*H])        # forget gate
+    o = torch.sigmoid(linear[:, 2*H:3*H])     # output gate
+    g = torch.tanh(linear[:, 3*H:4*H])         # cell gate
+    
+    next_c = f * prev_c + i * g                # next cell state
+    next_h = o * torch.tanh(next_c)  # next hidden state
+    
+    
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
